@@ -93,7 +93,7 @@ Codeunit 50019 BiLldIn
         ChildrenArrays2: JsonArray;
         ChildrenArrays3: JsonArray;
         nature: Text;
-        ChildernObject: JsonObject;
+        ChildrenObject: JsonObject;
         CampoToken: JsonToken;
         LineChapNo: Integer;
         LineSubChapNo: Integer;
@@ -116,266 +116,7 @@ Codeunit 50019 BiLldIn
         JobJsonObj.Get('children', ChildrenToken);
         ChildrenArrays := ChildrenToken.AsArray();
         Clear(ChildrenToken);
-        foreach Childrentoken in ChildrenArrays do begin
-            JobTask.Init;
-            Clear(ChildernObject);
-            ChildernObject := Childrentoken.AsObject();
-            Clear(CampoToken);
-            ChildernObject.Get('nature', CampoToken);
-
-            nature := CampoToken.AsValue().AsText();
-            If (nature = 'CHAPTER') OR (NATURE = 'SUBCHAPTER') then begin
-                if nature = 'CHAPTER' then begin
-                    LineChapNo += 10000;
-                    LineSubChapNo := LineChapNo;
-                    JobTask.Init();
-                    JobTask."Job No." := Job."No.";
-                    JobTask."Job Task No." := Format(LineChapNo);
-                    JobTask."Job Task Type" := JobTask."Job Task Type"::Total;
-                    JobTask.Totaling := Format(LineChapNo) + '..' + Format(LineChapNo + 9999);
-                    Clear(CampoToken);
-                    ChildernObject.Get('summary', CampoToken);
-                    JobTask.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                    JobTask.Insert();
-                    ChildernObject.Get('children', SubChildrenToken);
-                    ChildrenArrays2 := SubChildrenToken.AsArray();
-                    Clear(SubChildrenToken);
-                    foreach SubChildrenToken in ChildrenArrays2 do begin
-                        Clear(ChildernObject);
-                        ChildernObject := SubChildrenToken.AsObject();
-                        Clear(CampoToken);
-                        ChildernObject.Get('nature', CampoToken);
-                        nature := CampoToken.AsValue().AsText();
-                        if nature = 'SUBCHAPTER' then begin
-                            LineSubChapNo += 100;
-                            JobTask.Init();
-                            JobTask."Job No." := Job."No.";
-                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
-                            JobTask."Job Task No." := Format(LineSubChapNo);
-                            JobTask.Totaling := Format(LineSubChapNo) + '..' + Format(LineSubChapNo + 99);
-                            Clear(CampoToken);
-                            ChildernObject.Get('summary', CampoToken);
-                            JobTask.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                            JobTask.Insert(true);
-                            Clear(SubSubChildrenToken);
-                            ChildernObject.Get('children', SubSubChildrenToken);
-                            ChildrenArrays3 := SubSubChildrenToken.AsArray();
-                            Clear(SubSubChildrenToken);
-                            LineNo := 0;
-                            foreach SubSubChildrenToken in ChildrenArrays3 do begin
-                                Clear(ChildernObject);
-                                LineNo += 10000;
-                                ChildernObject := SubSubChildrenToken.AsObject();
-                                Clear(CampoToken);
-                                ChildernObject.Get('nature', CampoToken);
-                                nature := CampoToken.AsValue().AsText();
-
-                                //if nature= 'BATCH' then begin
-                                JobPlanningLine.Init();
-                                JobPlanningLine."Job No." := Job."No.";
-                                JobPlanningLine."Job Task No." := JobTask."Job Task No.";
-                                If nature = 'MATERIALS' then begin
-                                    Clear(CampoToken);
-                                    ChildernObject.Get('code', CampoToken);
-                                    If Not Item.GET(CampoToken.AsValue().AsText()) then begin
-                                        Item.Init();
-                                        Item."No." := CampoToken.AsValue().AsText();
-                                        Clear(CampoToken);
-                                        ChildernObject.Get('summary', CampoToken);
-                                        Item.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                                        Item.Insert(true);
-                                        JobPlanningLine.Type := JobPlanningLine.Type::Item;
-                                        JobPlanningLine."No." := Item."No.";
-                                    end;
-                                end else begin
-                                    Clear(CampoToken);
-                                    ChildernObject.Get('code', CampoToken);
-                                    If Not Resource.GET(CampoToken.AsValue().AsText()) then begin
-                                        Resource.Init();
-                                        Resource."No." := CampoToken.AsValue().AsText();
-                                        Clear(CampoToken);
-                                        ChildernObject.Get('summary', CampoToken);
-                                        Resource.Name := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                                        Resource.Insert(true);
-                                        JobPlanningLine.Type := JobPlanningLine.Type::Resource;
-                                        JobPlanningLine."No." := Resource."No.";
-                                    end;
-                                end;
-                                Clear(CampoToken);
-                                ChildernObject.Get('summary', CampoToken);
-                                JobPlanningLine.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                                JobPlanningLine."Line No." := LineNo;
-                                JobPlanningLine.Insert(true);
-                                Clear(CampoToken);
-                                ChildernObject.Get('quantity', CampoToken);
-                                JobPlanningLine.Quantity := CampoToken.AsValue().AsDecimal();
-                                Clear(CampoToken);
-                                ChildernObject.Get('salePrice', CampoToken);
-                                JobPlanningLine."Unit Price" := CampoToken.AsValue().AsDecimal();
-                                Clear(CampoToken);
-                                ChildernObject.Get('costAmount', CampoToken);
-                                JobPlanningLine."Unit Cost" := CampoToken.AsValue().AsDecimal();
-                                Clear(CampoToken);
-                                ChildernObject.Get('PK', CampoToken);
-                                JobPlanningLine.PK := CampoToken.AsValue().AsText();
-                                JobPlanningLine.Modify(true);
-
-                                // end;
-                            end;
-                            nature := '';
-                        end;
-                        if (nature = 'BATCH') Or (nature = 'MATERIALS') or (nature = 'WORKFORCE') Or (nature = 'MACHINERY') then begin
-                            LineNo += 10000;
-                            JobPlanningLine.Init();
-                            JobPlanningLine."Job No." := Job."No.";
-                            JobPlanningLine."Job Task No." := JobTask."Job Task No.";
-                            JobTask.Get(JobPlanningLine."Job No.", JobPlanningLine."Job Task No.");
-                            JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
-                            JobTask.Modify();
-                            If nature = 'MATERIALS' then begin
-                                Clear(CampoToken);
-                                ChildernObject.Get('code', CampoToken);
-                                If Not Item.GET(CampoToken.AsValue().AsText()) then begin
-                                    Item.Init();
-                                    Item."No." := CampoToken.AsValue().AsText();
-                                    Clear(CampoToken);
-                                    ChildernObject.Get('summary', CampoToken);
-                                    Item.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                                    Item.Insert(true);
-                                    JobPlanningLine.Type := JobPlanningLine.Type::Item;
-                                    JobPlanningLine."No." := Item."No.";
-                                end;
-                            end else begin
-                                Clear(CampoToken);
-                                ChildernObject.Get('code', CampoToken);
-                                If Not Resource.GET(CampoToken.AsValue().AsText()) then begin
-                                    Resource.Init();
-                                    Resource."No." := CampoToken.AsValue().AsText();
-                                    Clear(CampoToken);
-                                    ChildernObject.Get('summary', CampoToken);
-                                    Resource.Name := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                                    Resource.Insert(true);
-                                    JobPlanningLine.Type := JobPlanningLine.Type::Resource;
-                                    JobPlanningLine."No." := Resource."No.";
-                                end;
-                            end;
-                            Clear(CampoToken);
-                            ChildernObject.Get('summary', CampoToken);
-                            JobPlanningLine.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                            JobPlanningLine."Line No." := LineNo;
-                            JobPlanningLine.Insert(true);
-                            Clear(CampoToken);
-                            ChildernObject.Get('quantity', CampoToken);
-                            JobPlanningLine.Quantity := CampoToken.AsValue().AsDecimal();
-                            Clear(CampoToken);
-                            ChildernObject.Get('salePrice', CampoToken);
-                            JobPlanningLine."Unit Price" := CampoToken.AsValue().AsDecimal();
-                            Clear(CampoToken);
-                            ChildernObject.Get('costAmount', CampoToken);
-                            JobPlanningLine."Unit Cost" := CampoToken.AsValue().AsDecimal();
-                            Clear(CampoToken);
-                            ChildernObject.Get('PK', CampoToken);
-                            JobPlanningLine.PK := CampoToken.AsValue().AsText();
-                            JobPlanningLine.Modify(true);
-                        end;
-                    end;
-                end else begin
-                    LineSubChapNo += 100;
-                    JobTask.Init();
-                    JobTask."Job No." := Job."No.";
-                    JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
-                    JobTask."Job Task No." := Format(LineSubChapNo);
-                    Clear(CampoToken);
-                    ChildernObject.Get('summary', CampoToken);
-                    JobTask.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                    JobTask.Insert(true);
-                    Clear(SubChildrenToken);
-                    ChildernObject.Get('children', SubChildrenToken);
-                    Clear(ChildrenArrays3);
-                    ChildrenArrays3 := SubChildrenToken.AsArray();
-                    Clear(SubChildrenToken);
-                    foreach SubChildrenToken in ChildrenArrays3 do begin
-                        Clear(ChildernObject);
-                        ChildernObject := SubChildrenToken.AsObject();
-                        Clear(CampoToken);
-                        ChildernObject.Get('nature', CampoToken);
-                        nature := CampoToken.AsValue().AsText();
-                        //if nature= 'BATCH' then begin
-                        LineNo += 10000;
-                        JobPlanningLine.Init();
-                        JobPlanningLine."Job No." := Job."No.";
-                        If nature = 'MATERIALS' then begin
-                            Clear(CampoToken);
-                            ChildernObject.Get('code', CampoToken);
-                            If Not Item.GET(CampoToken.AsValue().AsText()) then begin
-                                Item.Init();
-                                Item."No." := CampoToken.AsValue().AsText();
-                                Clear(CampoToken);
-                                ChildernObject.Get('summary', CampoToken);
-                                Item.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                                Item.Insert(true);
-                                JobPlanningLine.Type := JobPlanningLine.Type::Item;
-                                JobPlanningLine."No." := Item."No.";
-                            end;
-                        end else begin
-                            Clear(CampoToken);
-                            ChildernObject.Get('code', CampoToken);
-                            If Not Resource.GET(CampoToken.AsValue().AsText()) then begin
-                                Resource.Init();
-                                Resource."No." := CampoToken.AsValue().AsText();
-                                Clear(CampoToken);
-                                ChildernObject.Get('summary', CampoToken);
-                                Resource.Name := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                                Resource.Insert(true);
-                                JobPlanningLine.Type := JobPlanningLine.Type::Resource;
-                                JobPlanningLine."No." := Resource."No.";
-                            end;
-                        end;
-                        JobPlanningLine."Job Task No." := JobTask."Job Task No.";
-                        Clear(CampoToken);
-                        ChildernObject.Get('summary', CampoToken);
-                        JobPlanningLine.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                        JobPlanningLine."Line No." := LineNo;
-                        JobPlanningLine.Insert(true);
-                        Clear(CampoToken);
-                        ChildernObject.Get('quantity', CampoToken);
-                        JobPlanningLine.Quantity := CampoToken.AsValue().AsDecimal();
-                        Clear(CampoToken);
-                        ChildernObject.Get('salePrice', CampoToken);
-                        JobPlanningLine."Unit Price" := CampoToken.AsValue().AsDecimal();
-                        Clear(CampoToken);
-                        ChildernObject.Get('costAmount', CampoToken);
-                        JobPlanningLine."Unit Cost" := CampoToken.AsValue().AsDecimal();
-                        Clear(CampoToken);
-                        ChildernObject.Get('PK', CampoToken);
-                        JobPlanningLine.PK := CampoToken.AsValue().AsText();
-                        JobPlanningLine.Modify(true);
-                    end;
-                end;
-            end;
-            if (nature = 'BATCH') Or (nature = 'METERIALS') OR (nature = 'WORKFORCE') Or (nature = 'MACHINERY') then begin
-                LineNo += 10000;
-                JobPlanningLine.Init();
-                JobPlanningLine."Job No." := Job."No.";
-                JobPlanningLine."Job Task No." := JobTask."Job Task No.";
-                Clear(CampoToken);
-                ChildernObject.Get('summary', CampoToken);
-                JobPlanningLine.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
-                JobPlanningLine."Line No." := LineNo;
-                JobPlanningLine.Insert(true);
-                Clear(CampoToken);
-                ChildernObject.Get('quantity', CampoToken);
-                JobPlanningLine.Quantity := CampoToken.AsValue().AsDecimal();
-                Clear(CampoToken);
-                ChildernObject.Get('salePrice', CampoToken);
-                JobPlanningLine."Unit Price" := CampoToken.AsValue().AsDecimal();
-                Clear(CampoToken);
-                ChildernObject.Get('costAmount', CampoToken);
-                JobPlanningLine."Unit Cost" := CampoToken.AsValue().AsDecimal();
-                JobPlanningLine.Modify(true);
-            end;
-
-        end;
+        Chapter(ChildrenArrays, Job."No.");
         exit(Job."No.");
         //     {
         // "quantity": 1,
@@ -493,6 +234,308 @@ Codeunit 50019 BiLldIn
 
     end;
 
+    procedure Chapter(ChildrenArrays: JsonArray; JobNo: Text)
+    var
+        ChildrenToken: JsonToken;
+        JobTask: Record "Job Task";
+        ChildrenObject: JsonObject;
+        CampoToken: JsonToken;
+        nature: Text;
+        LineChapNo: Integer;
+        ChildrenArrays2: JsonArray;
+        SubchildrenToken: JsonToken;
+        LineNo: Integer;
+        JobPlanningLine: Record "Job Planning Line";
+        Item: Record Item;
+        Resource: Record Resource;
+    begin
+
+        foreach Childrentoken in ChildrenArrays do begin
+            JobTask.Init;
+            Clear(ChildrenObject);
+            ChildrenObject := Childrentoken.AsObject();
+            Clear(CampoToken);
+            ChildrenObject.Get('nature', CampoToken);
+
+            nature := CampoToken.AsValue().AsText();
+            If (nature = 'CHAPTER') OR (NATURE = 'SUBCHAPTER') then begin
+                if nature = 'CHAPTER' then begin
+                    LineChapNo += 10000;
+                    JobTask.Init();
+                    JobTask."Job No." := JobNo;
+                    JobTask."Job Task No." := Format(LineChapNo);
+                    JobTask."Job Task Type" := JobTask."Job Task Type"::Total;
+                    JobTask.Totaling := Format(LineChapNo) + '..' + Format(LineChapNo + 9999);
+                    Clear(CampoToken);
+                    ChildrenObject.Get('summary', CampoToken);
+                    JobTask.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+                    JobTask.Insert();
+                    Clear(SubChildrenToken);
+                    Clear(ChildrenArrays2);
+                    ChildrenObject.Get('children', SubChildrenToken);
+                    ChildrenArrays2 := SubChildrenToken.AsArray();
+                    Clear(SubChildrenToken);
+                    SubChapter(ChildrenArrays2, JobNo, LineChapNo);
+                end else begin
+                    JobTask.Init();
+                    JobTask."Job No." := JobNo;
+                    JobTask."Job Task No." := Format(LineChapNo + 100);
+                    JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                    Clear(CampoToken);
+                    ChildrenObject.Get('summary', CampoToken);
+                    JobTask.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+                    JobTask.Insert();
+                    ChildrenObject.Get('children', SubChildrenToken);
+                    ChildrenArrays2 := SubChildrenToken.AsArray();
+                    Clear(SubChildrenToken);
+                    PlaningLine(ChildrenArrays2, JobNo, JobTask."Job Task No.", 0);
+                end;
+            end else begin
+                if (nature = 'BATCH') Or (nature = 'MATERIALS') or (nature = 'WORKFORCE') Or (nature = 'MACHINERY') then begin
+                    LineNo += 10000;
+                    JobPlanningLine.Init();
+                    JobPlanningLine."Job No." := JobNo;
+                    JobPlanningLine."Job Task No." := JobTask."Job Task No.";
+                    JobTask.Get(JobPlanningLine."Job No.", JobPlanningLine."Job Task No.");
+                    JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                    JobTask.Modify();
+                    If nature = 'MATERIALS' then begin
+                        Clear(CampoToken);
+                        ChildrenObject.Get('code', CampoToken);
+                        If Not Item.GET(CampoToken.AsValue().AsText()) then begin
+                            Item.Init();
+                            Item."No." := CampoToken.AsValue().AsText();
+                            Clear(CampoToken);
+                            ChildrenObject.Get('summary', CampoToken);
+                            Item.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+                            Item.Insert(true);
+                            JobPlanningLine.Type := JobPlanningLine.Type::Item;
+                            JobPlanningLine."No." := Item."No.";
+                        end;
+                    end else begin
+                        Clear(CampoToken);
+                        ChildrenObject.Get('code', CampoToken);
+                        If Not Resource.GET(CampoToken.AsValue().AsText()) then begin
+                            Resource.Init();
+                            Resource."No." := CampoToken.AsValue().AsText();
+                            Clear(CampoToken);
+                            ChildrenObject.Get('summary', CampoToken);
+                            Resource.Name := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+                            Resource.Insert(true);
+                            JobPlanningLine.Type := JobPlanningLine.Type::Resource;
+                            JobPlanningLine."No." := Resource."No.";
+                        end;
+                    end;
+                    Clear(CampoToken);
+                    ChildrenObject.Get('summary', CampoToken);
+                    JobPlanningLine.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+                    repeat
+                        JobPlanningLine."Line No." := LineNo;
+                        LineNo += 10000;
+                    until JobPlanningLine.Insert(true);
+                    Clear(CampoToken);
+                    ChildrenObject.Get('quantity', CampoToken);
+                    JobPlanningLine.Quantity := CampoToken.AsValue().AsDecimal();
+                    Clear(CampoToken);
+                    ChildrenObject.Get('salePrice', CampoToken);
+                    JobPlanningLine."Unit Price" := CampoToken.AsValue().AsDecimal();
+                    Clear(CampoToken);
+                    ChildrenObject.Get('costAmount', CampoToken);
+                    JobPlanningLine."Unit Cost" := CampoToken.AsValue().AsDecimal();
+                    Clear(CampoToken);
+                    ChildrenObject.Get('PK', CampoToken);
+                    JobPlanningLine.PK := CampoToken.AsValue().AsText();
+                    JobPlanningLine.Modify(true);
+                end;
+            end;
+
+        end;
+    end;
+
+    procedure SubChapter(ChildrenArrays: JsonArray; JobNo: Text; JobTaskNo: Integer)
+    var
+        ChildrenToken: JsonToken;
+        JobTask: Record "Job Task";
+        ChildrenObject: JsonObject;
+        CampoToken: JsonToken;
+        nature: Text;
+        LineSubChapNo: Integer;
+        ChildrenArrays3: JsonArray;
+        SubChildrenToken: JsonToken;
+        LineNo: Integer;
+        JobPlanningLine: Record "Job Planning Line";
+        Item: Record Item;
+        Resource: Record Resource;
+    begin
+        LineSubChapNo := JobTaskNo;
+        foreach ChildrenToken in ChildrenArrays do begin
+            Clear(ChildrenObject);
+            ChildrenObject := ChildrenToken.AsObject();
+            Clear(CampoToken);
+            ChildrenObject.Get('nature', CampoToken);
+            nature := CampoToken.AsValue().AsText();
+            if nature = 'SUBCHAPTER' then begin
+                LineSubChapNo += 100;
+                JobTask.Init();
+                JobTask."Job No." := JobNo;
+                JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                JobTask."Job Task No." := Format(LineSubChapNo);
+                JobTask.Totaling := Format(LineSubChapNo) + '..' + Format(LineSubChapNo + 99);
+                Clear(CampoToken);
+                ChildrenObject.Get('summary', CampoToken);
+                JobTask.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+                JobTask.Insert(true);
+                Clear(SubChildrenToken);
+                ChildrenObject.Get('children', SubChildrenToken);
+                ChildrenArrays3 := SubChildrenToken.AsArray();
+                planingLine(ChildrenArrays3, JobNo, JobTask."Job Task No.", 0);
+
+                // end;
+            end else begin
+                LineNo += 10000;
+                JobPlanningLine.Init();
+                JobPlanningLine."Job No." := JobNo;
+                JobPlanningLine."Job Task No." := Format(JobTaskNo);
+                JobTask.Get(JobPlanningLine."Job No.", JobPlanningLine."Job Task No.");
+                JobTask."Job Task Type" := JobTask."Job Task Type"::Posting;
+                JobTask.Modify();
+                If nature = 'MATERIALS' then begin
+                    Clear(CampoToken);
+                    ChildrenObject.Get('code', CampoToken);
+                    If Not Item.GET(CampoToken.AsValue().AsText()) then begin
+                        Item.Init();
+                        Item."No." := CampoToken.AsValue().AsText();
+                        Clear(CampoToken);
+                        ChildrenObject.Get('summary', CampoToken);
+                        Item.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+                        Item.Insert(true);
+                        JobPlanningLine.Type := JobPlanningLine.Type::Item;
+                        JobPlanningLine."No." := Item."No.";
+                    end;
+                end else begin
+                    Clear(CampoToken);
+                    ChildrenObject.Get('code', CampoToken);
+                    If Not Resource.GET(CampoToken.AsValue().AsText()) then begin
+                        Resource.Init();
+                        Resource."No." := CampoToken.AsValue().AsText();
+                        Clear(CampoToken);
+                        ChildrenObject.Get('summary', CampoToken);
+                        Resource.Name := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+                        Resource.Insert(true);
+                        JobPlanningLine.Type := JobPlanningLine.Type::Resource;
+                        JobPlanningLine."No." := Resource."No.";
+                    end;
+                end;
+                Clear(CampoToken);
+                ChildrenObject.Get('summary', CampoToken);
+                JobPlanningLine.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+                repeat
+                    JobPlanningLine."Line No." := LineNo;
+                    LineNo += 10000;
+                until JobPlanningLine.Insert(true);
+                Clear(CampoToken);
+                ChildrenObject.Get('quantity', CampoToken);
+                JobPlanningLine.Quantity := CampoToken.AsValue().AsDecimal();
+                Clear(CampoToken);
+                ChildrenObject.Get('salePrice', CampoToken);
+                JobPlanningLine."Unit Price" := CampoToken.AsValue().AsDecimal();
+                Clear(CampoToken);
+                ChildrenObject.Get('costAmount', CampoToken);
+                JobPlanningLine."Unit Cost" := CampoToken.AsValue().AsDecimal();
+                Clear(CampoToken);
+                ChildrenObject.Get('PK', CampoToken);
+                JobPlanningLine.PK := CampoToken.AsValue().AsText();
+                JobPlanningLine.Modify(true);
+                If ChildrenObject.Get('children', SubChildrenToken) then begin
+
+                    ChildrenArrays3 := SubChildrenToken.AsArray();
+                    planingLine(ChildrenArrays3, JobNo, JobTask."Job Task No.", JobPlanningLine."Line No.");
+                end;
+            end;
+        end;
+        nature := '';
+    end;
+
+
+    procedure PlaningLine(ChildrenArrays: JsonArray; JobNo: Text; JobTaskNo: Text; LineNo: Integer)
+    var
+        ChildrenToken: JsonToken;
+        JobPlanningLine: Record "Job Planning Line";
+        ChildrenObject: JsonObject;
+        CampoToken: JsonToken;
+        nature: Text;
+        Item: Record Item;
+        Resource: Record Resource;
+        ChildrenArrays3: JsonArray;
+        SubChildrenToken: JsonToken;
+    begin
+        foreach ChildrenToken in ChildrenArrays do begin
+            Clear(ChildrenObject);
+            LineNo += 10000;
+            ChildrenObject := ChildrenToken.AsObject();
+            Clear(CampoToken);
+            ChildrenObject.Get('nature', CampoToken);
+            nature := CampoToken.AsValue().AsText();
+
+            //if nature= 'BATCH' then begin
+            JobPlanningLine.Init();
+            JobPlanningLine."Job No." := JobNo;
+            JobPlanningLine."Job Task No." := JobTaskNo;
+            If nature = 'MATERIALS' then begin
+                Clear(CampoToken);
+                ChildrenObject.Get('code', CampoToken);
+                If Not Item.GET(CampoToken.AsValue().AsText()) then begin
+                    Item.Init();
+                    Item."No." := CampoToken.AsValue().AsText();
+                    Clear(CampoToken);
+                    ChildrenObject.Get('summary', CampoToken);
+                    Item.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+                    Item.Insert(true);
+                    JobPlanningLine.Type := JobPlanningLine.Type::Item;
+                    JobPlanningLine."No." := Item."No.";
+                end;
+            end else begin
+                Clear(CampoToken);
+                ChildrenObject.Get('code', CampoToken);
+                If Not Resource.GET(CampoToken.AsValue().AsText()) then begin
+                    Resource.Init();
+                    Resource."No." := CampoToken.AsValue().AsText();
+                    Clear(CampoToken);
+                    ChildrenObject.Get('summary', CampoToken);
+                    Resource.Name := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+                    Resource.Insert(true);
+                    JobPlanningLine.Type := JobPlanningLine.Type::Resource;
+                    JobPlanningLine."No." := Resource."No.";
+                end;
+            end;
+            Clear(CampoToken);
+            ChildrenObject.Get('summary', CampoToken);
+            JobPlanningLine.Description := Copystr(CampoToken.AsValue().AsText(), 1, 50);
+            repeat
+                JobPlanningLine."Line No." := LineNo;
+                LineNo += 10000;
+            until JobPlanningLine.Insert(true);
+            Clear(CampoToken);
+            ChildrenObject.Get('quantity', CampoToken);
+            JobPlanningLine.Quantity := CampoToken.AsValue().AsDecimal();
+            Clear(CampoToken);
+            ChildrenObject.Get('salePrice', CampoToken);
+            JobPlanningLine."Unit Price" := CampoToken.AsValue().AsDecimal();
+            Clear(CampoToken);
+            ChildrenObject.Get('costAmount', CampoToken);
+            JobPlanningLine."Unit Cost" := CampoToken.AsValue().AsDecimal();
+            Clear(CampoToken);
+            ChildrenObject.Get('PK', CampoToken);
+            JobPlanningLine.PK := CampoToken.AsValue().AsText();
+            JobPlanningLine.Modify(true);
+            If ChildrenObject.Get('children', SubChildrenToken) then begin
+
+                ChildrenArrays3 := SubChildrenToken.AsArray();
+                planingLine(ChildrenArrays3, JobNo, JobPlanningLine."Job Task No.", JobPlanningLine."Line No.");
+            end;
+        end;
+    end;
+
     procedure "BillDin-Get-Order"(OrderCode: Text; Proyecto: Text)
     Var
         PurchaseHeader: Record "Purchase Header";
@@ -506,6 +549,8 @@ Codeunit 50019 BiLldIn
         LineasToken: JsonToken;
         LineNo: Integer;
         JobPlanningLine: Record "Job Planning Line";
+        Item: Record Item;
+        Resource: Record Resource;
     begin
         PurchaseHeader.SetRange("PKOrder", OrderCode);
         If PurchaseHeader.FindSet() then
@@ -554,10 +599,24 @@ Codeunit 50019 BiLldIn
             PurchaseLine."Job No." := JobNo;
             if JobPlanningLine.Type = JobPlanningLine.Type::Item then begin
                 PurchaseLine."Type" := PurchaseLine."Type"::Item;
+                Item.GET(JobPlanningLine."No.");
+                If item."Gen. Prod. Posting Group" = '' Then begin
+                    Item."Gen. Prod. Posting Group" := 'MERCADERÍA';
+                    Item.Modify();
+                end;
+                if Item."Inventory Posting Group" = '' then begin
+                    Item."Inventory Posting Group" := 'MERCADERÍA';
+                    Item.Modify();
+                end;
                 PurchaseLine.Validate("No.", JobPlanningLine."No.");
 
             end else begin
                 PurchaseLine."Type" := PurchaseLine."Type"::Resource;
+                Resource.GET(JobPlanningLine."No.");
+                If Resource."Gen. Prod. Posting Group" = '' Then begin
+                    Resource."Gen. Prod. Posting Group" := 'SERVICIOS';
+                    Resource.Modify();
+                end;
                 PurchaseLine.Validate("No.", JobPlanningLine."No.");
 
             end;
@@ -618,7 +677,7 @@ Codeunit 50019 BiLldIn
         JosonArray: JsonArray;
         JsonToken: JsonToken;
     begin
-        If Type = 'Customer' then
+        If Type = 'client' then
             Customer.GET(VendorCode)
         else
             Vendor.GET(VendorCode);
@@ -628,14 +687,14 @@ Codeunit 50019 BiLldIn
         JosonObject.Add('type', type);
         JosonObject.Add('apiKey', GlSetup."Api Key");
         Jsonproperty.Add('name', 'name');
-        if Type = 'Customer' then
+        if Type = 'client' then
             Jsonproperty.Add('value', Customer.Name)
         else
             Jsonproperty.Add('value', Vendor.Name);
         JosonArray.Add(Jsonproperty);
         Clear(Jsonproperty);
         Jsonproperty.Add('name', 'ID');
-        if Type = 'Customer' then
+        if Type = 'client' then
             Jsonproperty.Add('value', Customer."VAT Registration No.")
         else
             Jsonproperty.Add('value', Vendor."Vat Registration No.");
@@ -647,7 +706,7 @@ Codeunit 50019 BiLldIn
         Clear(Jsonproperty);
         //"email": "david.fdez.santos@maybecloud.es"
         Jsonproperty.Add('name', 'email');
-        if Type = 'Customer' then
+        if Type = 'client' then
             Jsonproperty.Add('value', Customer."E-Mail")
         else
             Jsonproperty.Add('value', Vendor."E-Mail");
@@ -655,7 +714,7 @@ Codeunit 50019 BiLldIn
         Clear(Jsonproperty);
         //"phone": "34600000000"
         Jsonproperty.Add('name', 'phone');
-        if Type = 'Customer' then
+        if Type = 'client' then
             Jsonproperty.Add('value', Customer."Phone No.")
         else
             Jsonproperty.Add('value', Vendor."Phone No.");
@@ -663,7 +722,7 @@ Codeunit 50019 BiLldIn
         Clear(Jsonproperty);
         //"address": "Calle de la Princesa, 5, 28008 Madrid, Spain"
         Jsonproperty.Add('name', 'address');
-        if Type = 'Customer' then
+        if Type = 'client' then
             Jsonproperty.Add('value', Customer.Address)
         else
             Jsonproperty.Add('value', Vendor.Address);
